@@ -54,10 +54,10 @@ export const ASSET_ADDRESSES: Record<Network, Record<Asset, string>> = {
 
 export function useWallet() {
   // Safely use ThirdWeb hooks with error handling
-  let address;
-  let sdk;
-  let currentChain;
-  let switchChainFn;
+  let address: string | undefined;
+  let sdk: any;
+  let currentChain: any;
+  let switchChainFn: any;
   
   try {
     address = useAddress();
@@ -82,9 +82,10 @@ export function useWallet() {
   }, [currentChain]);
   
   // ETH balance (only fetch if address is connected)
-  const { data: ethBalance, isLoading: isEthBalanceLoading } = !address
+  // Pass native currency address (0x0) explicitly to avoid issues
+  const { data: ethBalance, isLoading: isEthBalanceLoading } = !address || !currentNetwork
     ? { data: undefined, isLoading: false }
-    : useBalance();
+    : useBalance(ASSET_ADDRESSES[currentNetwork]?.eth);
   
   // ApeCoin balance (passing token address)
   // Only fetch if we have a wallet address and currentNetwork is defined
@@ -95,8 +96,13 @@ export function useWallet() {
   // Switch to a different network
   const switchNetwork = async (network: Network) => {
     try {
+      if (!switchChainFn) {
+        console.error("Chain switching function not available");
+        return false;
+      }
+      
       // Use chain ID from the configuration
-      await switchChain(NETWORK_CHAIN_IDS[network]);
+      await switchChainFn(NETWORK_CHAIN_IDS[network]);
       return true;
     } catch (error) {
       console.error("Failed to switch network:", error);
