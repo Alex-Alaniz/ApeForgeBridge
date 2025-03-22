@@ -12,11 +12,17 @@ export default function TransactionHistory() {
   const [filter, setFilter] = useState<TransactionType | "all">("all");
   const [assetFilter, setAssetFilter] = useState<Asset | "all">("all");
   
-  const filteredTransactions = transactions?.filter(tx => {
-    const matchesType = filter === "all" || tx.type === filter;
-    const matchesAsset = assetFilter === "all" || tx.asset === assetFilter;
-    return matchesType && matchesAsset;
-  }) || [];
+  // Properly type and filter the transactions with error handling
+  const filteredTransactions = transactions && Array.isArray(transactions) 
+    ? transactions.filter((tx: Transaction) => {
+        // Ensure the transaction has the required properties
+        if (!tx || typeof tx !== 'object') return false;
+        
+        const matchesType = filter === "all" || tx.type === filter;
+        const matchesAsset = assetFilter === "all" || tx.asset === assetFilter;
+        return matchesType && matchesAsset;
+      }) 
+    : [];
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
@@ -91,7 +97,7 @@ export default function TransactionHistory() {
               </tr>
             </thead>
             <tbody>
-              {filteredTransactions.map((transaction) => (
+              {filteredTransactions.map((transaction: Transaction) => (
                 <TransactionItem key={transaction.id} transaction={transaction} />
               ))}
             </tbody>

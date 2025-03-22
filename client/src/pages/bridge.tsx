@@ -54,13 +54,33 @@ export default function BridgePage() {
     setToNetwork(temp);
   };
   
-  // Get bridge fee
+  // Get bridge fee with enhanced error handling
   const getBridgeFee = (asset: Asset, fromNetwork: Network, toNetwork: Network): string => {
     try {
-      const key = `${fromNetwork}_${toNetwork}` as keyof typeof BRIDGE_FEES[typeof asset];
       // Special case: don't allow same network transfers
       if (fromNetwork === toNetwork) return "0";
-      return BRIDGE_FEES[asset][key] || "0.001";
+      
+      // Create the network pair key
+      const networkPairKey = `${fromNetwork}_${toNetwork}`;
+      
+      // Check if asset exists in BRIDGE_FEES
+      if (!BRIDGE_FEES[asset]) {
+        console.warn(`Asset ${asset} not found in BRIDGE_FEES, using default fee`);
+        return "0.001";
+      }
+      
+      // Check if the network pair exists for this asset
+      if (!BRIDGE_FEES[asset][networkPairKey as keyof typeof BRIDGE_FEES[typeof asset]]) {
+        console.warn(`Network pair ${networkPairKey} not found for asset ${asset}, using default fee`);
+        // If this direction doesn't exist, check the reverse direction as fallback
+        const reverseKey = `${toNetwork}_${fromNetwork}`;
+        if (BRIDGE_FEES[asset][reverseKey as keyof typeof BRIDGE_FEES[typeof asset]]) {
+          return BRIDGE_FEES[asset][reverseKey as keyof typeof BRIDGE_FEES[typeof asset]];
+        }
+        return "0.001";
+      }
+      
+      return BRIDGE_FEES[asset][networkPairKey as keyof typeof BRIDGE_FEES[typeof asset]];
     } catch (error) {
       console.error("Error getting bridge fee:", error);
       return "0.001";
@@ -105,6 +125,9 @@ export default function BridgePage() {
       // Create a transaction using the backend API
       const txType: TransactionType = fromNetwork === "ethereum" ? "deposit" : "withdrawal";
       
+      // Create a random transaction hash for simulation
+      const randomHash = `0x${Math.random().toString(16).substring(2, 16)}${Math.random().toString(16).substring(2, 16)}`;
+      
       const transaction: InsertTransaction = {
         walletAddress: address,
         fromNetwork,
@@ -112,7 +135,7 @@ export default function BridgePage() {
         asset,
         amount: amount,
         fee: getBridgeFee(asset, fromNetwork, toNetwork),
-        transactionHash: `0x${Math.random().toString(16).substring(2, 16)}${Math.random().toString(16).substring(2, 16)}`,
+        transactionHash: randomHash,
         status: "pending",
         type: txType,
         confirmations: 0,
