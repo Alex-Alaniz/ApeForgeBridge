@@ -40,8 +40,14 @@ export const ASSETS = {
 
 // Standard fee for bridging assets
 export const BRIDGE_FEES = {
-  eth: "0.001",
-  ape: "0.5"
+  eth: {
+    ethereum_apechain: "0.001",
+    apechain_ethereum: "0.002"
+  },
+  ape: {
+    ethereum_apechain: "0.5",
+    apechain_ethereum: "1.0"
+  }
 };
 
 // Mock USD rates for conversion

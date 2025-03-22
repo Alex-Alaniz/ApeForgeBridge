@@ -1,32 +1,33 @@
-import { useState, useEffect } from "react";
-import { useAddress } from "@thirdweb-dev/react";
+import { useState } from "react";
+import { ConnectWallet, useAddress } from "@thirdweb-dev/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Network, Asset, Transaction } from "@shared/schema";
+import { Network, Asset, Transaction, TransactionType, InsertTransaction } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useWallet } from "@/hooks/use-wallet";
-import { useBridge } from "@/hooks/use-bridge";
 import NetworkSelector from "@/components/bridge/network-selector";
 import AssetSelector from "@/components/bridge/asset-selector";
 import AmountInput from "@/components/bridge/amount-input";
 import TransactionProgress from "@/components/bridge/transaction-progress";
 import TransactionHistory from "@/components/transaction/transaction-history";
-import { ConnectWallet } from "@thirdweb-dev/react";
 import { Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { NETWORKS, BRIDGE_FEES, EST_TIME_PER_CONFIRMATION, REQUIRED_CONFIRMATIONS } from "@/lib/constants";
 
 export default function BridgePage() {
+  // Core state
   const address = useAddress();
   const { toast } = useToast();
-  const wallet = useWallet();
-  const { currentNetwork, switchNetwork, getAssetBalance } = wallet || {};
-  const bridge = useBridge();
-  const { bridgeAsset, getBridgeFee, isProcessing, currentTransaction } = bridge || {};
   
-  // Form state
+  // Local state management
   const [fromNetwork, setFromNetwork] = useState<Network>("ethereum");
   const [toNetwork, setToNetwork] = useState<Network>("apechain");
   const [asset, setAsset] = useState<Asset>("eth");
   const [amount, setAmount] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
+  
+  // Simplified balance handling
+  const [balance, setBalance] = useState("1.5");
   
   // Handle network switch for "from" dropdown 
   const handleFromNetworkChange = async (network: Network) => {
@@ -35,18 +36,6 @@ export default function BridgePage() {
       setToNetwork(fromNetwork);
     }
     setFromNetwork(network);
-    
-    // If user changes dropdown, try to switch network in wallet
-    if (network !== currentNetwork) {
-      const success = await switchNetwork(network);
-      if (!success) {
-        toast({
-          title: "Network Switch Required",
-          description: `Please switch your wallet to ${network === 'ethereum' ? 'Ethereum Mainnet' : 'ApeChain (L3)'} to continue.`,
-          variant: "destructive"
-        });
-      }
-    }
   };
   
   // Handle network switch for "to" dropdown
@@ -65,10 +54,12 @@ export default function BridgePage() {
     setToNetwork(temp);
   };
   
-  // Get the current balance based on the selected asset and network
-  const currentBalance = getAssetBalance ? getAssetBalance(asset) : { value: "0", isLoading: false };
+  // Get bridge fee
+  const getBridgeFee = (asset: Asset, fromNetwork: Network, toNetwork: Network): string => {
+    return BRIDGE_FEES[asset][`${fromNetwork}_${toNetwork}`] || "0.001";
+  };
   
-  // Bridge the asset
+  // Handle the bridge action
   const handleBridge = async () => {
     if (!address) {
       toast({
@@ -89,10 +80,9 @@ export default function BridgePage() {
     }
     
     // Check if user has enough balance
-    const bal = parseFloat(currentBalance.value);
     const amtToSend = parseFloat(amount);
     
-    if (isNaN(bal) || bal < amtToSend) {
+    if (amtToSend > parseFloat(balance)) {
       toast({
         title: "Insufficient Balance",
         description: `You don't have enough ${asset.toUpperCase()} to complete this transaction.`,
@@ -101,14 +91,79 @@ export default function BridgePage() {
       return;
     }
     
-    if (bridgeAsset) {
-      await bridgeAsset(asset, amount, fromNetwork, toNetwork);
-    } else {
+    try {
+      setIsProcessing(true);
+      
+      // Create a transaction using the backend API
+      const txType: TransactionType = fromNetwork === "ethereum" ? "deposit" : "withdrawal";
+      
+      const transaction: InsertTransaction = {
+        walletAddress: address,
+        fromNetwork,
+        toNetwork,
+        asset,
+        amount: amount,
+        fee: getBridgeFee(asset, fromNetwork, toNetwork),
+        txHash: `0x${Math.random().toString(16).substring(2, 16)}${Math.random().toString(16).substring(2, 16)}`,
+        status: "pending",
+        type: txType,
+        confirmations: 0,
+        requiredConfirmations: REQUIRED_CONFIRMATIONS,
+        estTimePerConfirmation: EST_TIME_PER_CONFIRMATION
+      };
+      
+      const response = await apiRequest<Transaction>({
+        url: "/api/transactions",
+        method: "POST",
+        body: transaction
+      });
+      
+      setCurrentTransaction(response);
+      toast({
+        title: "Transaction Initiated",
+        description: `Your ${asset.toUpperCase()} is being bridged from ${NETWORKS[fromNetwork].name} to ${NETWORKS[toNetwork].name}.`,
+      });
+      
+      // Simulate confirmations in real application this would be done by backend
+      let confirmations = 0;
+      const interval = setInterval(async () => {
+        confirmations++;
+        
+        let status = "confirming";
+        if (confirmations >= REQUIRED_CONFIRMATIONS) {
+          status = "completed";
+          clearInterval(interval);
+        }
+        
+        try {
+          const updatedTx = await apiRequest<Transaction>({
+            url: `/api/transactions/${response.id}/status`,
+            method: "PATCH",
+            body: { status, confirmations }
+          });
+          
+          setCurrentTransaction(updatedTx);
+          
+          if (status === "completed") {
+            toast({
+              title: "Transaction Complete",
+              description: `Your ${asset.toUpperCase()} has been successfully bridged!`,
+            });
+            setIsProcessing(false);
+          }
+        } catch (error) {
+          console.error("Error updating transaction:", error);
+        }
+      }, 2000); // Update every 2 seconds for demo purposes
+      
+    } catch (error) {
+      console.error("Bridge error:", error);
       toast({
         title: "Bridge Error",
-        description: "The bridge functionality is not available at the moment.",
+        description: "There was an error processing your transaction.",
         variant: "destructive"
       });
+      setIsProcessing(false);
     }
   };
   
@@ -139,9 +194,9 @@ export default function BridgePage() {
             asset={asset}
             amount={amount}
             onAmountChange={setAmount}
-            balance={currentBalance.value}
-            maxBalance={currentBalance.value}
-            fee={getBridgeFee ? getBridgeFee(asset, fromNetwork, toNetwork) : "0"}
+            balance={balance}
+            maxBalance={balance}
+            fee={getBridgeFee(asset, fromNetwork, toNetwork)}
           />
           
           {/* Action Button Area */}
@@ -161,7 +216,7 @@ export default function BridgePage() {
                   Processing...
                 </Button>
               </div>
-            ) : Number(amount) > Number(currentBalance.value) ? (
+            ) : Number(amount) > Number(balance) ? (
               <div id="insufficient-funds">
                 <Button disabled className="w-full bg-red-100 text-red-600 font-medium py-3 px-4 rounded-lg">
                   Insufficient funds
@@ -181,7 +236,7 @@ export default function BridgePage() {
           
           {/* Transaction Progress */}
           {currentTransaction && (
-            <TransactionProgress transaction={currentTransaction as Transaction} />
+            <TransactionProgress transaction={currentTransaction} />
           )}
         </CardContent>
       </Card>
