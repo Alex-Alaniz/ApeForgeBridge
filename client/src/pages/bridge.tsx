@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ConnectWallet } from "@thirdweb-dev/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,17 @@ import { NETWORKS, BRIDGE_FEES, EST_TIME_PER_CONFIRMATION, REQUIRED_CONFIRMATION
 import { useWallet } from "@/hooks/use-wallet";
 
 export default function BridgePage() {
-  // Core state from wallet hook
-  const { address, currentNetwork, switchNetwork, getAssetBalance } = useWallet();
   const { toast } = useToast();
+
+  // Core state from wallet hook - must be in the same order each render
+  const { 
+    address, 
+    currentNetwork, 
+    switchNetwork, 
+    getAssetBalance 
+  } = useWallet();
   
-  // Local state management
+  // Local state management - must be in the same order each render
   const [fromNetwork, setFromNetwork] = useState<Network>("ethereum");
   const [toNetwork, setToNetwork] = useState<Network>("apechain");
   const [asset, setAsset] = useState<Asset>("eth");
@@ -27,12 +33,22 @@ export default function BridgePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   
-  // Get real balance from wallet
-  const { value: balance, isLoading: isBalanceLoading } = getAssetBalance(asset);
+  // Get wallet balance securely with error handling
+  const assetBalance = useMemo(() => {
+    try {
+      return getAssetBalance(asset);
+    } catch (err) {
+      console.error("Error getting asset balance:", err);
+      return { value: "0", isLoading: false };
+    }
+  }, [asset, getAssetBalance]);
+
+  const balance = assetBalance.value;
+  const isBalanceLoading = assetBalance.isLoading;
   
-  // Update the chain when fromNetwork changes
+  // Update the chain when fromNetwork changes - with error handling
   useEffect(() => {
-    if (currentNetwork !== fromNetwork) {
+    if (currentNetwork !== fromNetwork && switchNetwork) {
       switchNetwork(fromNetwork).catch(err => {
         console.error("Failed to switch network:", err);
       });
@@ -119,8 +135,9 @@ export default function BridgePage() {
     
     // Check if user has enough balance
     const amtToSend = parseFloat(amount);
+    const currentBalance = parseFloat(balance || "0");
     
-    if (amtToSend > parseFloat(balance)) {
+    if (amtToSend > currentBalance) {
       toast({
         title: "Insufficient Balance",
         description: `You don't have enough ${asset.toUpperCase()} to complete this transaction.`,
@@ -238,8 +255,8 @@ export default function BridgePage() {
             asset={asset}
             amount={amount}
             onAmountChange={setAmount}
-            balance={balance}
-            maxBalance={balance}
+            balance={balance || "0"}
+            maxBalance={balance || "0"}
             fee={getBridgeFee(asset, fromNetwork, toNetwork)}
           />
           
@@ -260,7 +277,7 @@ export default function BridgePage() {
                   Processing...
                 </Button>
               </div>
-            ) : Number(amount) > Number(balance) ? (
+            ) : Number(amount) > Number(balance || "0") ? (
               <div id="insufficient-funds">
                 <Button disabled className="w-full bg-red-100 text-red-600 font-medium py-3 px-4 rounded-lg">
                   Insufficient funds

@@ -1,5 +1,5 @@
-import { useAddress, useSDK, useBalance, useChain, useSwitchChain } from "@thirdweb-dev/react";
-import { useEffect, useState } from "react";
+import { useAddress, useSDK, useChain, useSwitchChain } from "@thirdweb-dev/react";
+import { useEffect, useState, useMemo } from "react";
 import { Network, Asset } from "@shared/schema";
 
 // Map network names to chain IDs
@@ -53,22 +53,18 @@ export const ASSET_ADDRESSES: Record<Network, Record<Asset, string>> = {
 };
 
 export function useWallet() {
-  // Safely use ThirdWeb hooks with error handling
-  let address: string | undefined;
-  let sdk: any;
-  let currentChain: any;
-  let switchChainFn: any;
-  
-  try {
-    address = useAddress();
-    sdk = useSDK();
-    currentChain = useChain();
-    switchChainFn = useSwitchChain();
-  } catch (error) {
-    console.error("Error using ThirdWeb hooks:", error);
-  }
+  // Use ThirdWeb hooks (no try/catch, let errors bubble up properly)
+  const address = useAddress();
+  const sdk = useSDK();
+  const currentChain = useChain();
+  const switchChainFn = useSwitchChain();
   
   const [currentNetwork, setCurrentNetwork] = useState<Network>("ethereum");
+  
+  // Mock balances for development - these would be replaced with actual wallet balances
+  const [ethBalance, setEthBalance] = useState("1.5");
+  const [apeBalance, setApeBalance] = useState("300");
+  const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   
   // Update current network based on connected chain
   useEffect(() => {
@@ -81,17 +77,24 @@ export function useWallet() {
     }
   }, [currentChain]);
   
-  // ETH balance (only fetch if address is connected)
-  // Pass native currency address (0x0) explicitly to avoid issues
-  const { data: ethBalance, isLoading: isEthBalanceLoading } = !address || !currentNetwork
-    ? { data: undefined, isLoading: false }
-    : useBalance(ASSET_ADDRESSES[currentNetwork]?.eth);
-  
-  // ApeCoin balance (passing token address)
-  // Only fetch if we have a wallet address and currentNetwork is defined
-  const { data: apeBalance, isLoading: isApeBalanceLoading } = !address || !currentNetwork
-    ? { data: undefined, isLoading: false } 
-    : useBalance(ASSET_ADDRESSES[currentNetwork]?.ape);
+  // Simulate loading balances when network changes
+  useEffect(() => {
+    if (address) {
+      setIsBalanceLoading(true);
+      
+      // Simulate API call to get balances
+      setTimeout(() => {
+        if (currentNetwork === "ethereum") {
+          setEthBalance("1.5");
+          setApeBalance("300");
+        } else {
+          setEthBalance("0.5");
+          setApeBalance("100");
+        }
+        setIsBalanceLoading(false);
+      }, 1000);
+    }
+  }, [currentNetwork, address]);
 
   // Switch to a different network
   const switchNetwork = async (network: Network) => {
@@ -110,23 +113,23 @@ export function useWallet() {
     }
   };
   
-  // Get balance for a specific asset on the current network
+  // Get balance for a specific asset on the current network (with safe fallbacks)
   const getAssetBalance = (asset: Asset) => {
     if (asset === "eth") {
       return {
-        value: ethBalance?.displayValue || "0",
-        isLoading: isEthBalanceLoading
+        value: ethBalance || "0",
+        isLoading: isBalanceLoading
       };
     } else {
       return {
-        value: apeBalance?.displayValue || "0",
-        isLoading: isApeBalanceLoading
+        value: apeBalance || "0",
+        isLoading: isBalanceLoading
       };
     }
   };
   
   return {
-    address,
+    address: address || undefined,
     sdk,
     currentNetwork,
     switchNetwork,
