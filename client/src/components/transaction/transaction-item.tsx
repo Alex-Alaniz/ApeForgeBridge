@@ -51,7 +51,7 @@ export default function TransactionItem({ transaction }: TransactionItemProps) {
       <td className="py-4">
         <span className="inline-flex items-center">
           {isDeposit ? (
-            <ArrowUp className="w-4 h-4 mr-1 text-[#FF4D4D]" />
+            <ArrowUp className="w-4 h-4 mr-1 text-[#0054FA]" />
           ) : (
             <ArrowDown className="w-4 h-4 mr-1 text-green-600" />
           )}

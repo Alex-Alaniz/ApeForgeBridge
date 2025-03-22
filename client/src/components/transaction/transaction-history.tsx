@@ -28,7 +28,7 @@ export default function TransactionHistory() {
           <Button 
             onClick={() => setFilter("all")} 
             variant={filter === "all" ? "default" : "outline"}
-            className={filter === "all" ? "bg-[#FF4D4D] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
+            className={filter === "all" ? "bg-[#0054FA] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
             size="sm"
           >
             All
@@ -36,7 +36,7 @@ export default function TransactionHistory() {
           <Button 
             onClick={() => setFilter("deposit")} 
             variant={filter === "deposit" ? "default" : "outline"}
-            className={filter === "deposit" ? "bg-[#FF4D4D] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
+            className={filter === "deposit" ? "bg-[#0054FA] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
             size="sm"
           >
             Deposits
@@ -44,7 +44,7 @@ export default function TransactionHistory() {
           <Button 
             onClick={() => setFilter("withdrawal")} 
             variant={filter === "withdrawal" ? "default" : "outline"}
-            className={filter === "withdrawal" ? "bg-[#FF4D4D] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
+            className={filter === "withdrawal" ? "bg-[#0054FA] text-white" : "bg-[#FAFAFA] text-[#3B3B3B] hover:bg-gray-200"}
             size="sm"
           >
             Withdrawals
@@ -53,7 +53,7 @@ export default function TransactionHistory() {
         
         <div className="relative">
           <select 
-            className="appearance-none bg-[#FAFAFA] border border-gray-200 rounded-lg py-1.5 px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4D4D] focus:border-transparent"
+            className="appearance-none bg-[#FAFAFA] border border-gray-200 rounded-lg py-1.5 px-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-[#0054FA] focus:border-transparent"
             value={assetFilter}
             onChange={(e) => setAssetFilter(e.target.value as Asset | "all")}
           >
@@ -72,7 +72,7 @@ export default function TransactionHistory() {
       {/* Loading state */}
       {isLoading && (
         <div className="text-center py-12">
-          <div className="w-16 h-16 border-4 border-[#FF4D4D] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#0054FA] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500">Loading transaction history...</p>
         </div>
       )}

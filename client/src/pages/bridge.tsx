@@ -141,12 +141,12 @@ export default function BridgePage() {
                 <ConnectWallet
                   theme="light"
                   btnTitle="Connect Wallet"
-                  className="w-full bg-[#FF4D4D] hover:bg-opacity-90 text-white font-medium py-3 px-4 rounded-lg transition-all"
+                  className="w-full bg-[#0054FA] hover:bg-opacity-90 text-white font-medium py-3 px-4 rounded-lg transition-all"
                 />
               </div>
             ) : isProcessing ? (
               <div id="processing-state">
-                <Button disabled className="w-full bg-[#FF4D4D] bg-opacity-70 text-white font-medium py-3 px-4 rounded-lg">
+                <Button disabled className="w-full bg-[#0054FA] bg-opacity-70 text-white font-medium py-3 px-4 rounded-lg">
                   <Loader2 className="animate-spin h-5 w-5 mr-3" />
                   Processing...
                 </Button>
@@ -161,7 +161,7 @@ export default function BridgePage() {
               <div id="bridge-action">
                 <Button 
                   onClick={handleBridge}
-                  className="w-full bg-[#FF4D4D] hover:bg-opacity-90 text-white font-medium py-3 px-4 rounded-lg transition-all"
+                  className="w-full bg-[#0054FA] hover:bg-opacity-90 text-white font-medium py-3 px-4 rounded-lg transition-all"
                 >
                   Bridge Assets
                 </Button>

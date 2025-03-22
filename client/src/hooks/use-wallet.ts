@@ -75,11 +75,11 @@ export function useWallet() {
   const { data: ethBalance, isLoading: isEthBalanceLoading } = useBalance();
   
   // ApeCoin balance (passing token address)
-  // Only fetch if we have a wallet address
-  const { data: apeBalance, isLoading: isApeBalanceLoading } = !address 
+  // Only fetch if we have a wallet address and currentNetwork is defined
+  const { data: apeBalance, isLoading: isApeBalanceLoading } = !address || !currentNetwork
     ? { data: undefined, isLoading: false } 
     : useBalance({
-        tokenAddress: ASSET_ADDRESSES[currentNetwork].ape
+        tokenAddress: ASSET_ADDRESSES[currentNetwork]?.ape
       });
 
   // Switch to a different network
