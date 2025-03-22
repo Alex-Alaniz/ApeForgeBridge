@@ -33,7 +33,7 @@ export function useBridge() {
   const sdk = useSDK();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { ASSET_ADDRESSES } = useWallet();
+  const { ASSET_ADDRESSES, currentNetwork } = useWallet();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<any>(null);
