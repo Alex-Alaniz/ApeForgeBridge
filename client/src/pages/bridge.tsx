@@ -119,11 +119,11 @@ export default function BridgePage() {
         requiredConfirmations: REQUIRED_CONFIRMATIONS
       };
       
-      const response = await apiRequest({
-        url: "/api/transactions",
-        method: "POST",
-        body: transaction
-      });
+      const response = await apiRequest(
+        "POST",
+        "/api/transactions",
+        transaction
+      );
       
       // Convert the response to expected format
       const createdTx = await response.json() as Transaction;
@@ -146,11 +146,11 @@ export default function BridgePage() {
         }
         
         try {
-          const updateResponse = await apiRequest({
-            url: `/api/transactions/${createdTx.id}/status`,
-            method: "PATCH",
-            body: { status, confirmations }
-          });
+          const updateResponse = await apiRequest(
+            "PATCH",
+            `/api/transactions/${createdTx.id}/status`,
+            { status, confirmations }
+          );
           
           const updatedTx = await updateResponse.json() as Transaction;
           setCurrentTransaction(updatedTx);
