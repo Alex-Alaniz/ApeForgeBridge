@@ -73,13 +73,18 @@ export class MemStorage implements IStorage {
     const confirmations = insertTransaction.confirmations ?? 0;
     const requiredConfirmations = insertTransaction.requiredConfirmations ?? 15; // Default to 15 confirmations
     
+    // Create a new object without the fee property from insertTransaction
+    const { fee: feeFromInput, ...rest } = insertTransaction;
+    
+    // Add fee separately to ensure it's string or null
     const transaction: Transaction = { 
-      ...insertTransaction, 
+      ...rest, 
       id, 
       timestamp,
       status,
       confirmations,
-      requiredConfirmations
+      requiredConfirmations,
+      fee: feeFromInput || null
     };
     this.transactions.set(id, transaction);
     return transaction;

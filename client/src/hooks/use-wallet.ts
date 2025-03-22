@@ -53,10 +53,20 @@ export const ASSET_ADDRESSES: Record<Network, Record<Asset, string>> = {
 };
 
 export function useWallet() {
-  const address = useAddress();
-  const sdk = useSDK();
-  const currentChain = useChain();
-  const switchChain = useSwitchChain();
+  // Safely use ThirdWeb hooks with error handling
+  let address;
+  let sdk;
+  let currentChain;
+  let switchChainFn;
+  
+  try {
+    address = useAddress();
+    sdk = useSDK();
+    currentChain = useChain();
+    switchChainFn = useSwitchChain();
+  } catch (error) {
+    console.error("Error using ThirdWeb hooks:", error);
+  }
   
   const [currentNetwork, setCurrentNetwork] = useState<Network>("ethereum");
   

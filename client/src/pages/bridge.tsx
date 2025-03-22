@@ -17,8 +17,10 @@ import { Loader2 } from "lucide-react";
 export default function BridgePage() {
   const address = useAddress();
   const { toast } = useToast();
-  const { currentNetwork, switchNetwork, getAssetBalance } = useWallet();
-  const { bridgeAsset, getBridgeFee, isProcessing, currentTransaction } = useBridge();
+  const wallet = useWallet();
+  const { currentNetwork, switchNetwork, getAssetBalance } = wallet || {};
+  const bridge = useBridge();
+  const { bridgeAsset, getBridgeFee, isProcessing, currentTransaction } = bridge || {};
   
   // Form state
   const [fromNetwork, setFromNetwork] = useState<Network>("ethereum");
@@ -64,7 +66,7 @@ export default function BridgePage() {
   };
   
   // Get the current balance based on the selected asset and network
-  const currentBalance = getAssetBalance(asset);
+  const currentBalance = getAssetBalance ? getAssetBalance(asset) : { value: "0", isLoading: false };
   
   // Bridge the asset
   const handleBridge = async () => {
@@ -99,7 +101,15 @@ export default function BridgePage() {
       return;
     }
     
-    await bridgeAsset(asset, amount, fromNetwork, toNetwork);
+    if (bridgeAsset) {
+      await bridgeAsset(asset, amount, fromNetwork, toNetwork);
+    } else {
+      toast({
+        title: "Bridge Error",
+        description: "The bridge functionality is not available at the moment.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -131,7 +141,7 @@ export default function BridgePage() {
             onAmountChange={setAmount}
             balance={currentBalance.value}
             maxBalance={currentBalance.value}
-            fee={getBridgeFee(asset, fromNetwork, toNetwork)}
+            fee={getBridgeFee ? getBridgeFee(asset, fromNetwork, toNetwork) : "0"}
           />
           
           {/* Action Button Area */}

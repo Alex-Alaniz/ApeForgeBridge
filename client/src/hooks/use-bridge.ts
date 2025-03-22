@@ -40,11 +40,16 @@ export function useBridge() {
   
   // Get bridge fee - in a real app, this would be fetched from the bridge contract
   const getBridgeFee = (asset: Asset, fromNetwork: Network, toNetwork: Network) => {
-    // Mock fees
-    if (asset === "eth") {
-      return "0.001";
-    } else {
-      return "0.5";
+    try {
+      // Mock fees
+      if (asset === "eth") {
+        return "0.001";
+      } else {
+        return "0.5";
+      }
+    } catch (error) {
+      console.error("Error getting bridge fee:", error);
+      return "0";
     }
   };
   
