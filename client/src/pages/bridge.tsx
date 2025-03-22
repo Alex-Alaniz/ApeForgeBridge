@@ -56,7 +56,15 @@ export default function BridgePage() {
   
   // Get bridge fee
   const getBridgeFee = (asset: Asset, fromNetwork: Network, toNetwork: Network): string => {
-    return BRIDGE_FEES[asset][`${fromNetwork}_${toNetwork}`] || "0.001";
+    try {
+      const key = `${fromNetwork}_${toNetwork}` as keyof typeof BRIDGE_FEES[typeof asset];
+      // Special case: don't allow same network transfers
+      if (fromNetwork === toNetwork) return "0";
+      return BRIDGE_FEES[asset][key] || "0.001";
+    } catch (error) {
+      console.error("Error getting bridge fee:", error);
+      return "0.001";
+    }
   };
   
   // Handle the bridge action
@@ -104,21 +112,23 @@ export default function BridgePage() {
         asset,
         amount: amount,
         fee: getBridgeFee(asset, fromNetwork, toNetwork),
-        txHash: `0x${Math.random().toString(16).substring(2, 16)}${Math.random().toString(16).substring(2, 16)}`,
+        transactionHash: `0x${Math.random().toString(16).substring(2, 16)}${Math.random().toString(16).substring(2, 16)}`,
         status: "pending",
         type: txType,
         confirmations: 0,
-        requiredConfirmations: REQUIRED_CONFIRMATIONS,
-        estTimePerConfirmation: EST_TIME_PER_CONFIRMATION
+        requiredConfirmations: REQUIRED_CONFIRMATIONS
       };
       
-      const response = await apiRequest<Transaction>({
+      const response = await apiRequest({
         url: "/api/transactions",
         method: "POST",
         body: transaction
       });
       
-      setCurrentTransaction(response);
+      // Convert the response to expected format
+      const createdTx = await response.json() as Transaction;
+      setCurrentTransaction(createdTx);
+      
       toast({
         title: "Transaction Initiated",
         description: `Your ${asset.toUpperCase()} is being bridged from ${NETWORKS[fromNetwork].name} to ${NETWORKS[toNetwork].name}.`,
@@ -136,12 +146,13 @@ export default function BridgePage() {
         }
         
         try {
-          const updatedTx = await apiRequest<Transaction>({
-            url: `/api/transactions/${response.id}/status`,
+          const updateResponse = await apiRequest({
+            url: `/api/transactions/${createdTx.id}/status`,
             method: "PATCH",
             body: { status, confirmations }
           });
           
+          const updatedTx = await updateResponse.json() as Transaction;
           setCurrentTransaction(updatedTx);
           
           if (status === "completed") {
