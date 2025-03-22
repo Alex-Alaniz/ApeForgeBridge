@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ConnectWallet, useAddress } from "@thirdweb-dev/react";
+import { useState, useEffect } from "react";
+import { ConnectWallet } from "@thirdweb-dev/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Network, Asset, Transaction, TransactionType, InsertTransaction } from "@shared/schema";
@@ -12,10 +12,11 @@ import TransactionHistory from "@/components/transaction/transaction-history";
 import { Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { NETWORKS, BRIDGE_FEES, EST_TIME_PER_CONFIRMATION, REQUIRED_CONFIRMATIONS } from "@/lib/constants";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function BridgePage() {
-  // Core state
-  const address = useAddress();
+  // Core state from wallet hook
+  const { address, currentNetwork, switchNetwork, getAssetBalance } = useWallet();
   const { toast } = useToast();
   
   // Local state management
@@ -26,8 +27,17 @@ export default function BridgePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   
-  // Simplified balance handling
-  const [balance, setBalance] = useState("1.5");
+  // Get real balance from wallet
+  const { value: balance, isLoading: isBalanceLoading } = getAssetBalance(asset);
+  
+  // Update the chain when fromNetwork changes
+  useEffect(() => {
+    if (currentNetwork !== fromNetwork) {
+      switchNetwork(fromNetwork).catch(err => {
+        console.error("Failed to switch network:", err);
+      });
+    }
+  }, [fromNetwork, currentNetwork, switchNetwork]);
   
   // Handle network switch for "from" dropdown 
   const handleFromNetworkChange = async (network: Network) => {
