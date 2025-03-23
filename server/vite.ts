@@ -26,7 +26,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+    allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
@@ -71,35 +71,48 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Use a more reliable path resolution to find the dist/public directory
-  const distPath = path.resolve(process.cwd(), "dist", "public");
+  // Try multiple possible paths for the static files
+  const possiblePaths = [
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(process.cwd(), "public"),
+    path.resolve(__dirname, "..", "public"),
+    path.resolve(__dirname, "public"),
+  ];
 
-  if (!fs.existsSync(distPath)) {
-    log(`Could not find the build directory: ${distPath}, looking in alternate locations...`);
-    
-    // Try alternate path based on __dirname
-    const altPath = path.resolve(__dirname, "..", "public");
-    if (fs.existsSync(altPath)) {
-      log(`Found build directory at: ${altPath}`);
-      app.use(express.static(altPath));
-      
-      // fall through to index.html if the file doesn't exist
-      app.use("*", (_req, res) => {
-        res.sendFile(path.resolve(altPath, "index.html"));
-      });
-      return;
+  // Find the first path that exists
+  let distPath = null;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      distPath = p;
+      log(`Found build directory at: ${distPath}`);
+      break;
     }
-    
+  }
+
+  if (!distPath) {
     throw new Error(
       `Could not find the build directory. Make sure to build the client first.`
     );
   }
 
+  // Serve static files
   log(`Serving static files from: ${distPath}`);
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
+  // Serve index.html for client-side routing
+  const indexHtmlPath = path.resolve(process.cwd(), "dist", "index.html");
+  const fallbackIndexHtml = fs.existsSync(indexHtmlPath) 
+    ? indexHtmlPath 
+    : path.resolve(distPath, "index.html");
+  
+  log(`Using index.html at: ${fallbackIndexHtml}`);
+  
+  // Fall through to index.html for client-side routing
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    if (fs.existsSync(fallbackIndexHtml)) {
+      res.sendFile(fallbackIndexHtml);
+    } else {
+      res.status(404).send("Not found - Unable to locate index.html");
+    }
   });
 }

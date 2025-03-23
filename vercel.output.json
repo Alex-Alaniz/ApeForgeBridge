@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "handle": "filesystem" },
+    { "src": "/assets/(.*)", "dest": "/dist/public/assets/$1" },
+    { "src": "/(.*)", "dest": "/dist/index.html" }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+} 
